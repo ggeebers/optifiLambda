@@ -2,30 +2,19 @@ require('dotenv').config();
 const sequelize = require('./db');
 const { User, History } = require('./models')
 
-
 // update/create users
 const updateUserData = async ({ userAccountAddress, userMarginAccountUsdc, isInLiquidation, isMarketMaker }) => {
     await sequelize.sync({ force: false })
     try {
-        const [user, created] = await User.findOrCreate({
+        let [user, created] = await User.findOrCreate({
             where: { userAccountAddress },
-            defaults: {
-                userMarginAccountUsdc, isInLiquidation, isMarketMaker
-            }
+            defaults: { userMarginAccountUsdc, isInLiquidation, isMarketMaker }
         });
-
-        if (!created) {
-            const { dataValues: updatedUser } = await user.update({ userMarginAccountUsdc, isInLiquidation, isMarketMaker })
-            return {
-                status: 200,
-                data: updatedUser,
-                message: 'User was successfully updated'
-            }
-        }
+        user = created ? user : await user.update({ userMarginAccountUsdc, isInLiquidation, isMarketMaker })
         return {
             status: 200,
             data: user.dataValues,
-            message: 'User was successfully created'
+            message: created ? 'User was successfully created' : 'User was successfully updated'
         }
     } catch (error) {
         return {
@@ -36,21 +25,18 @@ const updateUserData = async ({ userAccountAddress, userMarginAccountUsdc, isInL
     }
 };
 
-
 // grab all users
 const getAllUsers = async () => {
     await sequelize.sync({ force: false })
     try {
         let allUsers = await User.findAll()
         allUsers = allUsers.map(user => user.dataValues)
-        // await sequelize.close()
         return {
             status: 200,
             data: allUsers,
             message: 'Users successfully grabbed',
         }
     } catch (error) {
-        // await sequelize.close()
         return {
             status: 400,
             data: error,
@@ -59,23 +45,15 @@ const getAllUsers = async () => {
     }
 }
 
-
 // grab one user
 const getOneUser = async (userAccountAddress) => {
     await sequelize.sync({ force: false })
     try {
-        const { dataValues: user } = await User.findOne({ where: { userAccountAddress } })
-        if (!user) {
-            return {
-                status: 200,
-                data: user,
-                message: 'No User found'
-            }
-        }
+        const user = await User.findOne({ where: { userAccountAddress } })
         return {
             status: 200,
-            data: user,
-            message: 'User successfully grabbed'
+            data: user ? user.dataValues : null,
+            message: user ? 'User successfully grabbed' : 'No user found'
         }
     } catch (error) {
         return {
@@ -85,7 +63,6 @@ const getOneUser = async (userAccountAddress) => {
         }
     }
 }
-
 
 // grab all history
 const getAllHistory = async () => {
@@ -115,16 +92,15 @@ const getUserHistory = async (userAccountAddress) => {
             include: {
                 model: User,
                 as: 'user',
-                where: {
-                    userAccountAddress
-                }
+                where: { userAccountAddress }
             }
         })
         allHistory = allHistory.map(history => history.dataValues)
+        const isUser = allHistory.length > 0 ? true : await User.findOne({ where: { userAccountAddress } })
         return {
             status: 200,
             data: allHistory,
-            message: 'User history successfully grabbed'
+            message: allHistory.length > 0 ? 'User history successfully grabbed' : isUser ? `No history for user` : `User does not exist`
         }
     } catch (error) {
         return {
@@ -137,11 +113,8 @@ const getUserHistory = async (userAccountAddress) => {
 
 // add only new history for user (create user if does not exist)
 const addHistory = async ({
-    userAccountAddress,
-    userMarginAccountUsdc = '',
-    usdcValue,
-    positions,
-    openOrders,
+    userAccountAddress, usdcValue,
+    positions, openOrders,
     totalNetOptionValue,
     totalMarginRequirement,
     liquidationStatus,
@@ -149,70 +122,57 @@ const addHistory = async ({
 }) => {
     await sequelize.sync({ force: false })
     try {
-        const [{ dataValues: user }, isNewUser] = await User.findOrCreate({
-            where: { userAccountAddress },
-            defaults: {
-                userMarginAccountUsdc
-            }
-        });
-
+        const user = await User.findOne({ where: { userAccountAddress } });
+        if (!user) return {
+            status: 200,
+            data: null,
+            message: `User does not exist. Unable to add history for: ${userAccountAddress}`
+        }
         const newHistoryData = {
-            usdcValue,
-            positions,
-            openOrders,
+            uid: user.id, usdcValue,
+            positions, openOrders,
+            orderbookLocked,
             totalNetOptionValue,
             totalMarginRequirement,
             liquidationStatus,
-            orderbookLocked,
-            uid: user.id
         }
-
-        console.log(isNewUser ? `New User: ` : `Existing User: `, user)
-
-        // grab most recent existing history
         const recentHistoryRes = await History.findOne({
-            where: { uid: user.id },
+            where: { uid: user.dataValues.id },
             order: [['createdAt', 'DESC']]
         })
-
-        // if there is existing history.... check if most recent one matches the newHistoryData
         if (recentHistoryRes) {
             const { id, createdAt, updatedAt, addedOn, ...recentHistory } = recentHistoryRes.dataValues
             const isSame = Object.keys(recentHistory).every(key => JSON.stringify(newHistoryData[key]) === JSON.stringify(recentHistory[key]))
-            // console.log("Recent History", recentHistory)
-            console.log("History Matches: ", isSame)
-            if (!isSame) {
-                const { dataValues: newHistory } = await History.create(newHistoryData)
-                return {
-                    status: 200,
-                    data: newHistory,
-                    message: 'Added new history'
-                }
-            }
+            const history = isSame ? recentHistoryRes : await History.create(newHistoryData)
             return {
                 status: 200,
-                data: recentHistory,
-                message: 'Recent history matches new history data'
+                data: history.dataValues,
+                message: isSame ? 'Recent history matches new history data' : 'Added new history'
             }
         }
         const { dataValues: newHistory } = await History.create(newHistoryData)
         return {
             status: 200,
             data: newHistory,
-            message: `Created 1st history for ` + (isNewUser ? 'new' : 'existing') + ` user`
+            message: `Created 1st history for ${userAccountAddress}`
         }
-
     } catch (error) {
         return {
             status: 400,
             data: error,
-            message: 'Unable to create history with associated user'
+            message: `Unable to create history for ${userAccountAddress}`
         }
     }
 }
 
-
-
+module.exports = {
+    updateUserData,
+    getAllUsers,
+    getOneUser,
+    getAllHistory,
+    getUserHistory,
+    addHistory
+}
 
 // (async () => {
 //     // await sequelize.sync({ force: false })
@@ -228,28 +188,24 @@ const addHistory = async ({
 //     // const oneUser = await getOneUser('address111')
 
 //     // console.log(oneUser)
-//     // const testData = {
-//     //     userAccountAddress: 'userAccountAddress4',
-//     //     userMarginAccountUsdc: 'userMarginAccountUsdc',
-//     //     positions: [{ test: "test2" }, { value: 'value' }],
-//     //     openOrders: [{ test: "test" }],
-//     //     totalNetOptionValue: [1, 2],
-//     //     totalMarginRequirement: 1,
-//     //     liquidationStatus: false,
-//     //     usdcValue: 100,
-//     //     orderbookLocked: 1
-//     // }
-//     // console.log(await addHistory(testData))
+//     const testData = {
+//         userAccountAddress: 'testestetest',
+//         positions: [{ test: "fire" }, { value: 'value' }],
+//         openOrders: [{ test: "test" }],
+//         totalNetOptionValue: [1, 2],
+//         totalMarginRequirement: 1,
+//         liquidationStatus: false,
+//         usdcValue: 100,
+//         orderbookLocked: 1
+//     }
+//     console.log(await addHistory(testData))
 
-//     console.log(await getAllUsers())
+//     // console.log(await updateUserData(
+//     //     {
+//     //         userAccountAddress: 'seanNguyen',
+//     //         userMarginAccountUsdc: 'test',
+//     //         isInLiquidation: false,
+//     //         isMarketMaker: true
+//     //     }
+//     // ))
 // })()
-
-
-module.exports = {
-    updateUserData,
-    getAllUsers,
-    getOneUser,
-    getAllHistory,
-    getUserHistory,
-    addHistory
-}
