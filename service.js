@@ -47,7 +47,7 @@ const getAllUsers = async () => {
         return {
             status: 200,
             data: allUsers,
-            message: 'Users successfully grabbed'
+            message: 'Users successfully grabbed',
         }
     } catch (error) {
         // await sequelize.close()
@@ -214,35 +214,35 @@ const addHistory = async ({
 
 
 
-(async () => {
-    // await sequelize.sync({ force: false })
-    // const updateUser = await updateUserData({
-    //     userAccountAddress: 'userAccountAddress',
-    //     userMarginAccountUsdc: 'userMarginAccountUsdc',
-    //     isInLiquidation: false,
-    //     isMarketMaker: false
-    // })
-    // console.log(updateUser)
-    // const allUsers = await getAllUsers()
-    // console.log(allUsers)
-    // const oneUser = await getOneUser('address111')
+// (async () => {
+//     // await sequelize.sync({ force: false })
+//     // const updateUser = await updateUserData({
+//     //     userAccountAddress: 'userAccountAddress',
+//     //     userMarginAccountUsdc: 'userMarginAccountUsdc',
+//     //     isInLiquidation: false,
+//     //     isMarketMaker: false
+//     // })
+//     // console.log(updateUser)
+//     // const allUsers = await getAllUsers()
+//     // console.log(allUsers)
+//     // const oneUser = await getOneUser('address111')
 
-    // console.log(oneUser)
-    // const testData = {
-    //     userAccountAddress: 'userAccountAddress4',
-    //     userMarginAccountUsdc: 'userMarginAccountUsdc',
-    //     positions: [{ test: "test2" }, { value: 'value' }],
-    //     openOrders: [{ test: "test" }],
-    //     totalNetOptionValue: [1, 2],
-    //     totalMarginRequirement: 1,
-    //     liquidationStatus: false,
-    //     usdcValue: 100,
-    //     orderbookLocked: 1
-    // }
-    // console.log(await addHistory(testData))
+//     // console.log(oneUser)
+//     // const testData = {
+//     //     userAccountAddress: 'userAccountAddress4',
+//     //     userMarginAccountUsdc: 'userMarginAccountUsdc',
+//     //     positions: [{ test: "test2" }, { value: 'value' }],
+//     //     openOrders: [{ test: "test" }],
+//     //     totalNetOptionValue: [1, 2],
+//     //     totalMarginRequirement: 1,
+//     //     liquidationStatus: false,
+//     //     usdcValue: 100,
+//     //     orderbookLocked: 1
+//     // }
+//     // console.log(await addHistory(testData))
 
-    console.log(await getUserHistory('userAccountAddress'))
-})()
+//     console.log(await getAllUsers())
+// })()
 
 
 module.exports = {
