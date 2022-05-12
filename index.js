@@ -9,60 +9,43 @@ const {
     addHistory
 } = require('service.js');
 
-
 exports.handler = router.handler({
     proxyIntegration: {
         routes: [
             {
                 path: '/',
                 method: 'GET',
-                action: (request, context) => {
-                    console.log("path: /")
-                    return "You called me with: " + request.path;
-                }
+                action: (request, context) => "You called me with: " + request.path
             },
             {
                 path: '/users',
                 method: 'GET',
-                action: (request, context) => {
-                    // return getAllUsers()
-                    return getAllUsers()
-                }
+                action: (request, context) => getAllUsers()
             },
             {
                 path: '/users/:publicKey',
                 method: 'GET',
-                action: (request, context) => {
-                    return getOneUser(request.paths.publicKey)
-                }
+                action: (request, context) => getOneUser(request.paths.publicKey)
             },
             {
                 path: '/users',
                 method: 'POST',
-                action: (request, context) => {
-                    return updateUserData(request.body)
-                }
+                action: (request, context) => updateUserData(request.body)
             },
             {
                 path: '/history',
                 method: 'GET',
-                action: (request, context) => {
-                    return getAllHistory()
-                }
+                action: (request, context) => getAllHistory()
             },
             {
                 path: '/history/:userPublicKey',
                 method: 'GET',
-                action: (request, context) => {
-                    return getUserHistory(request.paths.userPublicKey)
-                }
+                action: (request, context) => getUserHistory(request.paths.userPublicKey)
             },
             {
                 path: '/history',
                 method: 'POST',
-                action: (request, context) => {
-                    return addHistory(request.body)
-                }
+                action: (request, context) => addHistory(request.body)
             },
         ]
     }
