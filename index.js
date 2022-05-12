@@ -25,6 +25,7 @@ exports.handler = router.handler({
                 path: '/users',
                 method: 'GET',
                 action: (request, context) => {
+                    // return getAllUsers()
                     return getAllUsers()
                 }
             },
@@ -50,10 +51,10 @@ exports.handler = router.handler({
                 }
             },
             {
-                path: '/history/user/:publicKey',
+                path: '/history/:userPublicKey',
                 method: 'GET',
                 action: (request, context) => {
-                    return getUserHistory(request.paths.publicKey)
+                    return getUserHistory(request.paths.userPublicKey)
                 }
             },
             {
